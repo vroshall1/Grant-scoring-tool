@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grant Scoring GPT - AI-Powered Grant Analysis</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background: #f1f5f9; }
+        .app-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        
+        /* Navigation */
+        .nav-tabs { display: flex; background: white; border-radius: 0.75rem; padding: 0.5rem; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 0.5rem; flex-wrap: wrap; }
+        .nav-tab { flex: 1; min-width: 200px; padding: 1rem; background: none; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #475569; }
+        .nav-tab:hover { background: #e2e8f0; color: #1e293b; }
+        .nav-tab.active { background: #1e40af; color: white; }
+        
+        /* Cards */
+        .card { background: white; border-radius: 0.75rem; padding: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .card-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; }
+        
+        /* Upload Section */
+        .upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .upload-box { border: 3px dashed #cbd5e1; border-radius: 0.75rem; padding: 2rem; text-align: center; transition: all 0.3s; background: white; }
+        .upload-box:hover { border-color: #1e40af; background: #f8fafc; }
+        .upload-icon { font-size: 3rem; margin-bottom: 1rem; color: #64748b; }
+        .upload-title { font-size: 1.25rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; }
+        .upload-subtitle { color: #64748b; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        
+        /* Buttons */
+        .btn { padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-size: 1rem; display: inline-block; }
+        .btn-primary { background: #1e40af; color: white; }
+        .btn-primary:hover { background: #1e3a8a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4); }
+        .btn-secondary { background: #e2e8f0; color: #1e293b; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-success { background: #1e40af; color: white; }
+        .btn-disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; opacity: 0.6; }
+        .btn-large { padding: 1rem 2rem; font-size: 1.125rem; }
+        .file-input { display: none; }
+        
+        /* Badges */
+        .badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; margin-top: 0.5rem; }
+        .badge-success { background: #dbeafe; color: #1e40af; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #e0e7ff; color: #3730a3; }
+        
+        /* Score Display */
+        .score-section { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; border-radius: 0.75rem; padding: 2rem; margin-bottom: 2rem; }
+        .score-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 2rem; }
+        .score-info h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .score-info p { opacity: 0.9; }
+        .score-actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        
+        /* Score Circle */
+        .score-circle-wrapper { display: flex; align-items: center; justify-content: center; }
+        
+        /* Criteria Cards */
+        .criteria-grid { display: grid; gap: 1.5rem; }
+        .criterion-card { border: 2px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; transition: all 0.2s; background: white; }
+        .criterion-card:hover { border-color: #1e40af; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1); }
+        .criterion-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
+        .criterion-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
+        .criterion-weight { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+        .criterion-score { text-align: right; }
+        .score-number { font-size: 2.5rem; font-weight: 700; line-height: 1; }
+        .score-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* Progress Bar */
+        .progress-bar { width: 100%; height: 0.75rem; background: #e2e8f0; border-radius: 9999px; overflow: hidden; margin-bottom: 1.5rem; }
+        .progress-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
+        
+        /* Feedback Grid */
+        .feedback-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .feedback-box { border-radius: 0.5rem; padding: 1.25rem; }
+        .feedback-box h4 { font-weight: 600; margin-bottom: 0.75rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .feedback-box ul { list-style: none; font-size: 0.875rem; line-height: 1.6; }
+        .feedback-box li { margin-bottom: 0.5rem; padding-left: 1.25rem; position: relative; }
+        .feedback-box li:before { content: "•"; position: absolute; left: 0; font-weight: bold; }
+        
+        .feedback-green { background: #dbeafe; color: #1e40af; }
+        .feedback-green h4 { color: #1e3a8a; }
+        .feedback-yellow { background: #fef3c7; color: #92400e; }
+        .feedback-yellow h4 { color: #b45309; }
+        .feedback-blue { background: #e0e7ff; color: #3730a3; }
+        .feedback-blue h4 { color: #312e81; }
+        .feedback-red { background: #fee2e2; color: #991b1b; }
+        .feedback-red h4 { color: #dc2626; }
+        
+        /* Alert Boxes */
+        .alert { padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem; border-left: 4px solid; }
+        .alert-info { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+        .alert-warning { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+        .alert-danger { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        .alert h4 { font-weight: 600; margin-bottom: 0.75rem; }
+        .alert ul, .alert ol { margin-left: 1.5rem; }
+        .alert li { margin-bottom: 0.5rem; }
+        
+        /* Empty State */
+        .empty-state { text-align: center; padding: 4rem 2rem; color: #64748b; }
+        .empty-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
+        .empty-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; color: #475569; }
+        
+        /* History */
+        .history-item { border: 2px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; background: white; flex-wrap: wrap; gap: 1rem; }
+        .history-item:hover { border-color: #1e40af; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1); }
+        .history-info h4 { font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
+        .history-info p { font-size: 0.875rem; color: #64748b; }
+        .history-actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .history-score { text-align: center; margin-right: 1rem; }
+        .history-score-number { font-size: 2rem; font-weight: 700; }
+        .history-score-label { font-size: 0.75rem; color: #64748b; }
+        
+        /* Color Classes */
+        .text-green { color: #1e40af; }
+        .text-yellow { color: #d97706; }
+        .text-red { color: #dc2626; }
+        .bg-green { background: #1e40af; }
+        .bg-yellow { background: #f59e0b; }
+        .bg-red { background: #ef4444; }
+        
+        /* Utilities */
+        .text-center { text-align: center; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .flex { display: flex; }
+        .gap-2 { gap: 0.5rem; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        
+        /* Animation */
+        .spinner { display: inline-block; width: 1.25rem; height: 1.25rem; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) {
+            .app-container { padding: 1rem; }
+            .header h1 { font-size: 1.75rem; }
+            .score-header { flex-direction: column; }
+            .feedback-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const GrantScoringGPT = () => {
+          const [activeTab, setActiveTab] = useState('upload');
+          const [proposal, setProposal] = useState(null);
+          const [rubric, setRubric] = useState(null);
+          const [analysis, setAnalysis] = useState(null);
+          const [isAnalyzing, setIsAnalyzing] = useState(false);
+          const [history, setHistory] = useState([]);
+
+          // Sample rubric templates based on common grant criteria
+          const sampleRubric = {
+            name: "Workforce Development Grant Rubric",
+            criteria: [
+              { id: 1, category: "Program Design & Innovation", weight: 30, maxPoints: 30 },
+              { id: 2, category: "Organizational Capacity", weight: 20, maxPoints: 20 },
+              { id: 3, category: "Budget & Sustainability", weight: 25, maxPoints: 25 },
+              { id: 4, category: "Impact & Evaluation", weight: 25, maxPoints: 25 }
+            ]
+          };
+
+          const handleFileUpload = (e, type) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const content = {
+                  name: file.name,
+                  size: (file.size / 1024).toFixed(2) + ' KB',
+                  type: file.type,
+                  content: event.target.result,
+                  uploadedAt: new Date().toISOString()
+                };
+                if (type === 'proposal') {
+                  setProposal(content);
+                } else {
+                  setRubric(content);
+                }
+              };
+              reader.readAsText(file);
+            }
+          };
+
+          const analyzeProposal = async () => {
+            if (!proposal) return;
+            
+            setIsAnalyzing(true);
+            setActiveTab('analysis');
+
+            // Simulate AI analysis processing
+            setTimeout(() => {
+              const generateScore = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+              
+              const criteriaTemplates = [
+                {
+                  category: "Program Design & Innovation",
+                  weight: 30,
+                  strengthsPool: [
+                    "Clear alignment with grant priorities and objectives",
+                    "Evidence-based curriculum with proven methodologies",
+                    "Strong industry partnerships and employer engagement",
+                    "Innovative approach to workforce skill development",
+                    "Well-defined target population with demonstrated need",
+                    "Comprehensive training model with multiple pathways",
+                    "Integration of soft skills and technical competencies"
+                  ],
+                  weaknessesPool: [
+                    "Innovation aspects need more specific detail",
+                    "Differentiation from existing programs unclear",
+                    "Limited description of instructional delivery methods",
+                    "Implementation timeline lacks specific milestones",
+                    "Scalability plan not fully developed",
+                    "Technology integration strategy needs expansion"
+                  ],
+                  suggestionsPool: [
+                    "Add 2-3 specific innovative program elements with supporting evidence",
+                    "Include comparative analysis with traditional training approaches",
+                    "Expand on pedagogical strategies and learning modalities",
+                    "Detail the program's unique value proposition with data",
+                    "Provide month-by-month implementation timeline",
+                    "Strengthen connection between training and industry needs"
+                  ],
+                  missingPool: [
+                    "Detailed curriculum outline with learning objectives",
+                    "Specific timeline with implementation milestones",
+                    "Assessment methodology and tools",
+                    "Industry advisory board composition",
+                    "Technology and equipment specifications"
+                  ]
+                },
+                {
+                  category: "Organizational Capacity",
+                  weight: 20,
+                  strengthsPool: [
+                    "Demonstrated experience in workforce development programs",
+                    "Qualified staff with relevant credentials documented",
+                    "Strong organizational track record in grant management",
+                    "Adequate facilities and resources described",
+                    "Established partnerships with key stakeholders",
+                    "Proven capacity to serve target population"
+                  ],
+                  weaknessesPool: [
+                    "Key personnel roles and responsibilities need clarification",
+                    "Past program success metrics insufficiently detailed",
+                    "Organizational structure and reporting lines unclear",
+                    "Staff professional development plan not included",
+                    "Partner roles and commitments vague",
+                    "Financial management capacity needs documentation"
+                  ],
+                  suggestionsPool: [
+                    "Add detailed CVs/bios for all key personnel",
+                    "Include quantitative outcomes from previous grants (completion rates, placement rates)",
+                    "Provide organizational chart with clear reporting structure",
+                    "Document quality assurance and program improvement processes",
+                    "Include letters of commitment from partners with specific roles",
+                    "Demonstrate fiscal responsibility with audit results"
+                  ],
+                  missingPool: [
+                    "Letters of commitment from key partners",
+                    "Organizational chart showing program placement",
+                    "Staff retention and turnover data",
+                    "Facility descriptions and accessibility compliance",
+                    "Most recent financial audit or 990",
+                    "Board of Directors composition and expertise"
+                  ]
+                },
+                {
+                  category: "Budget & Sustainability",
+                  weight: 25,
+                  strengthsPool: [
+                    "Budget categories clearly align with program activities",
+                    "Cost per participant is reasonable and justified",
+                    "Detailed budget narrative provided for major expenses",
+                    "Leverage of other funding sources demonstrated",
+                    "In-kind contributions strengthen cost-effectiveness",
+                    "Administrative costs are within acceptable limits"
+                  ],
+                  weaknessesPool: [
+                    "Long-term sustainability plan underdeveloped",
+                    "Several line items lack sufficient justification",
+                    "Future funding strategy unclear beyond grant period",
+                    "Indirect cost allocation not fully explained",
+                    "Cost-benefit analysis incomplete",
+                    "Revenue diversification plan missing"
+                  ],
+                  suggestionsPool: [
+                    "Develop comprehensive 3-year sustainability roadmap",
+                    "Justify all personnel costs with roles and time allocation",
+                    "Identify specific alternative revenue streams post-grant",
+                    "Strengthen cost-effectiveness analysis with benchmarks",
+                    "Detail indirect cost methodology and organizational policy",
+                    "Include financial projections for program continuation"
+                  ],
+                  missingPool: [
+                    "Match funding sources and documentation",
+                    "Equipment depreciation and replacement schedule",
+                    "Detailed sustainability and continuation plan",
+                    "Indirect cost rate agreement or calculation",
+                    "Budget narrative for key line items",
+                    "Cost per outcome analysis"
+                  ]
+                },
+                {
+                  category: "Impact & Evaluation",
+                  weight: 25,
+                  strengthsPool: [
+                    "Clear, measurable outcomes aligned with grant objectives",
+                    "Multiple evaluation methods and data sources proposed",
+                    "Logic model effectively links activities to outcomes",
+                    "Data collection procedures well-defined",
+                    "Performance targets are ambitious yet achievable",
+                    "Evaluation plan includes both formative and summative components"
+                  ],
+                  weaknessesPool: [
+                    "Data collection timeline not specified in detail",
+                    "Baseline data not included or collection plan unclear",
+                    "Limited detail on data analysis methodologies",
+                    "Evaluation frequency and reporting schedule vague",
+                    "Stakeholder engagement in evaluation minimal",
+                    "Plan for using evaluation findings not articulated"
+                  ],
+                  suggestionsPool: [
+                    "Create detailed evaluation timeline with quarterly milestones",
+                    "Include current baseline data or specific collection plan",
+                    "Specify statistical analysis methods and tools",
+                    "Add third-party evaluator or comparison group methodology",
+                    "Detail how evaluation findings will inform continuous improvement",
+                    "Strengthen outcome measures with industry-recognized credentials"
+                  ],
+                  missingPool: [
+                    "Third-party evaluator credentials and independence",
+                    "Comprehensive data management and privacy plan",
+                    "Baseline metrics and current performance data",
+                    "Evaluation instruments and assessment tools",
+                    "Reporting schedule and deliverables",
+                    "Plan for disseminating results and lessons learned"
+                  ]
+                }
+              ];
+
+              const getRandomItems = (array, count) => {
+                const shuffled = [...array].sort(() => 0.5 - Math.random());
+                return shuffled.slice(0, Math.min(count, array.length));
+              };
+
+              const criteriaScores = criteriaTemplates.map(template => {
+                const score = generateScore(68, 96);
+                return {
+                  category: template.category,
+                  score: score,
+                  weight: template.weight,
+                  strengths: getRandomItems(template.strengthsPool, generateScore(2, 3)),
+                  weaknesses: getRandomItems(template.weaknessesPool, generateScore(2, 3)),
+                  suggestions: getRandomItems(template.suggestionsPool, generateScore(2, 3)),
+                  missing: getRandomItems(template.missingPool, generateScore(1, 2))
+                };
+              });
+
+              const overallScore = Math.round(
+                criteriaScores.reduce((sum, c) => sum + (c.score * c.weight / 100), 0)
+              );
+
+              const insightsPool = [
+                "Program design demonstrates strong alignment with workforce development priorities",
+                "Organizational capacity is well-documented but needs quantitative performance data",
+                "Budget is reasonable but sustainability strategy requires more detail",
+                "Evaluation plan is comprehensive but timeline needs specificity",
+                "Strong industry partnerships enhance program credibility",
+                "Innovation elements are present but need more concrete examples",
+                "Target population need is clearly established with supporting data",
+                "Staff qualifications are strong but roles need clarification"
+              ];
+
+              const gapsPool = [
+                "Letters of support/commitment from key partners missing",
+                "Budget narrative incomplete for several major line items",
+                "Baseline data not provided for key outcome measures",
+                "Organizational chart or governance structure not included",
+                "Staff qualification documentation (CVs/resumes) missing",
+                "Long-term sustainability plan beyond grant period underdeveloped",
+                "Detailed evaluation timeline with milestones not provided",
+                "Third-party evaluator credentials not specified",
+                "Facility descriptions and accessibility information missing"
+              ];
+
+              const mockAnalysis = {
+                overallScore: overallScore,
+                timestamp: new Date().toISOString(),
+                proposalName: proposal.name,
+                criteriaScores: criteriaScores,
+                keyInsights: getRandomItems(insightsPool, 4),
+                criticalGaps: getRandomItems(gapsPool, generateScore(3, 5)),
+                recommendations: [
+                  "Strengthen the proposal by addressing all identified missing elements",
+                  "Enhance quantitative data and metrics throughout the narrative",
+                  "Ensure all partnership commitments are documented with formal letters",
+                  "Develop a more comprehensive sustainability and continuation plan",
+                  "Add specific timelines and milestones to implementation and evaluation sections"
+                ]
+              };
+
+              setAnalysis(mockAnalysis);
+              setHistory([...history, mockAnalysis]);
+              setIsAnalyzing(false);
+            }, 3500);
+          };
+
+          const loadSampleRubric = () => {
+            setRubric({
+              name: sampleRubric.name,
+              content: JSON.stringify(sampleRubric, null, 2),
+              size: '2.4 KB',
+              type: 'application/json',
+              uploadedAt: new Date().toISOString()
+            });
+          };
+
+          const exportReport = () => {
+            if (!analysis) return;
+            
+            let report = `GRANT PROPOSAL ANALYSIS REPORT
+${'='.repeat(80)}
+
+Generated: ${new Date(analysis.timestamp).toLocaleString()}
+Proposal: ${analysis.proposalName}
+Overall Score: ${analysis.overallScore}/100
+
+${'='.repeat(80)}
+SCORING BREAKDOWN
+${'='.repeat(80)}
+`;
+
+            analysis.criteriaScores.forEach(c => {
+              report += `
+${c.category.toUpperCase()} (Weight: ${c.weight}%)
+Score: ${c.score}/100
+${'-'.repeat(80)}
+
+STRENGTHS:
+${c.strengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+AREAS FOR IMPROVEMENT:
+${c.weaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
+
+RECOMMENDATIONS:
+${c.suggestions.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+MISSING ELEMENTS:
+${c.missing.map((m, i) => `  ${i + 1}. ${m}`).join('\n')}
+
+`;
+            });
+
+            report += `
+${'='.repeat(80)}
+KEY INSIGHTS
+${'='.repeat(80)}
+${analysis.keyInsights.map((insight, i) => `${i + 1}. ${insight}`).join('\n')}
+
+${'='.repeat(80)}
+CRITICAL GAPS TO ADDRESS
+${'='.repeat(80)}
+${analysis.criticalGaps.map((gap, i) => `${i + 1}. ${gap}`).join('\n')}
+
+${'='.repeat(80)}
+OVERALL RECOMMENDATIONS
+${'='.repeat(80)}
+${analysis.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+
+${'='.repeat(80)}
+End of Report
+`;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `grant-analysis-${proposal.name.replace(/\.[^/.]+$/, '')}-${Date.now()}.txt`;
+            a.click();
+          };
+
+          const ScoreCircle = ({ score, size = 140 }) => {
+            const radius = (size - 24) / 2;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (score / 100) * circumference;
+            
+            return (
+              <div style={{ width: size, height: size, position: 'relative' }}>
+                <svg width={size} height={size} style={{transform: 'rotate(-90deg)'}}>
+                  <circle
+                    cx={size/2}
+                    cy={size/2}
+                    r={radius}
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="12"
+                    fill="none"
+                  />
+                  <circle
+                    cx={size/2}
+                    cy={size/2}
+                    r={radius}
+                    stroke={score >= 85 ? "#1e40af" : score >= 70 ? "#f59e0b" : "#ef4444"}
+                    strokeWidth="12"
+                    fill="none"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    style={{
+                      filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))'
+                    }}
+                  />
+                </svg>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column'
+                }}>
+                  <span style={{fontSize: '3rem', fontWeight: 'bold', lineHeight: 1}}>{score}</span>
+                  <span style={{fontSize: '0.875rem', opacity: 0.9}}>out of 100</span>
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div style={{minHeight: '100vh', background: '#f1f5f9'}}>
+              <div className="app-container">
+                {/* Header */}
+                <div className="header">
+                  <h1>Grant Scoring GPT</h1>
+                  <p>AI-Powered Grant Proposal Analysis & Rubric Alignment Tool</p>
+                  <div style={{marginTop: '1rem', display: 'flex', gap: '2rem', fontSize: '0.95rem'}}>
+                    <div><strong>{history.length}</strong> Analyses Completed</div>
+                    <div><strong>4</strong> Evaluation Criteria</div>
+                    <div><strong>Real-time</strong> Feedback</div>
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="nav-tabs">
+                  <button
+                    className={`nav-tab ${activeTab === 'upload' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('upload')}
+                  >
+                    Upload & Analyze
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'analysis' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('analysis')}
+                  >
+                    Analysis Results
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                  >
+                    History
+                  </button>
+                </div>
+
+                {/* Upload Tab */}
+                {activeTab === 'upload' && (
+                  <div>
+                    <div className="card">
+                      <h2 className="card-title">Upload Documents</h2>
+                      <div className="upload-grid">
+                        <div className="upload-box">
+                          <div className="upload-icon">📄</div>
+                          <h3 className="upload-title">Grant Proposal</h3>
+                          <p className="upload-subtitle">Upload your grant proposal document</p>
+                          <label>
+                            <input
+                              type="file"
+                              className="file-input"
+                              accept=".pdf,.doc,.docx,.txt"
+                              onChange={(e) => handleFileUpload(e, 'proposal')}
+                            />
+                            <span className="btn btn-primary">Choose File</span>
+                          </label>
+                          {proposal && (
+                            <div className="mt-2">
+                              <div className="badge badge-success">
+                                {proposal.name} ({proposal.size})
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="upload-box">
+                          <div className="upload-icon">◈</div>
+                          <h3 className="upload-title">Grantor Rubric</h3>
+                          <p className="upload-subtitle">Upload scoring criteria or use sample</p>
+                          <div style={{display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap'}}>
+                            <label>
+                              <input
+                                type="file"
+                                className="file-input"
+                                accept=".pdf,.doc,.docx,.txt,.json"
+                                onChange={(e) => handleFileUpload(e, 'rubric')}
+                              />
+                              <span className="btn btn-primary">Choose File</span>
+                            </label>
+                            <button onClick={loadSampleRubric} className="btn btn-secondary">
+                              Use Sample
+                            </button>
+                          </div>
+                          {rubric && (
+                            <div className="mt-2">
+                              <div className="badge badge-success">
+                                {rubric.name}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-center mt-2">
+                        <button
+                          onClick={analyzeProposal}
+                          disabled={!proposal || isAnalyzing}
+                          className={`btn btn-large ${proposal && !isAnalyzing ? 'btn-primary' : 'btn-disabled'}`}
+                        >
+                          {isAnalyzing ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <span className="spinner"></span>
+                              Analyzing Proposal...
+                            </span>
+                          ) : (
+                            'Analyze Proposal'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="alert alert-info">
+                      <h4>How Grant Scoring GPT Works</h4>
+                      <ol>
+                        <li><strong>Upload:</strong> Submit your grant proposal document (PDF, Word, or text format)</li>
+                        <li><strong>Select Rubric:</strong> Upload the grantor's scoring rubric or use our sample rubric</li>
+                        <li><strong>AI Analysis:</strong> Our GPT analyzes your proposal against the rubric criteria</li>
+                        <li><strong>Get Feedback:</strong> Receive detailed scores, strengths, weaknesses, and actionable recommendations</li>
+                        <li><strong>Improve & Resubmit:</strong> Revise your proposal and re-analyze to track improvements</li>
+                      </ol>
+                    </div>
+
+                    <div className="card">
+                      <h3 className="card-title">Key Features</h3>
+                      <div className="feedback-grid">
+                        <div className="feedback-box feedback-blue">
+                          <h4>Comprehensive Analysis</h4>
+                          <ul>
+                            <li>Multi-criteria scoring based on rubric</li>
+                            <li>Weighted scoring for accurate assessment</li>
+                            <li>Detailed breakdown by category</li>
+                          </ul>
+                        </div>
+                        <div className="feedback-box feedback-green">
+                          <h4>Actionable Feedback</h4>
+                          <ul>
+                            <li>Specific strengths identification</li>
+                            <li>Areas for improvement highlighted</li>
+                            <li>Missing elements checklist</li>
+                          </ul>
+                        </div>
+                        <div className="feedback-box feedback-yellow">
+                          <h4>Expert Recommendations</h4>
+                          <ul>
+                            <li>Tailored suggestions for each criterion</li>
+                            <li>Best practices guidance</li>
+                            <li>Competitive positioning tips</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Analysis Tab */}
+                {activeTab === 'analysis' && (
+                  <div>
+                    {!analysis ? (
+                      <div className="card">
+                        <div className="empty-state">
+                          <div className="empty-icon">◯</div>
+                          <h3 className="empty-title">No Analysis Available</h3>
+                          <p>Upload a grant proposal and click "Analyze" to get started</p>
+                          <button
+                            onClick={() => setActiveTab('upload')}
+                            className="btn btn-primary mt-2"
+                          >
+                            Go to Upload
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        {/* Overall Score */}
+                        <div className="score-section">
+                          <div className="score-header">
+                            <div className="score-info">
+                              <h2>Analysis Complete</h2>
+                              <p><strong>Proposal:</strong> {analysis.proposalName}</p>
+                              <p><strong>Analyzed:</strong> {new Date(analysis.timestamp).toLocaleString()}</p>
+                              <div className="score-actions">
+                                <button onClick={exportReport} className="btn btn-success">
+                                  Export Report
+                                </button>
+                                <button
+                                  onClick={() => setActiveTab('upload')}
+                                  className="btn btn-secondary"
+                                >
+                                  Analyze Another
+                                </button>
+                              </div>
+                            </div>
+                            <div className="score-circle-wrapper">
+                              <ScoreCircle score={analysis.overallScore} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Key Insights */}
+                        <div className="alert alert-warning">
+                          <h4>Key Insights</h4>
+                          <ul>
+                            {analysis.keyInsights.map((insight, idx) => (
+                              <li key={idx}>{insight}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Critical Gaps */}
+                        <div className="alert alert-danger">
+                          <h4>Critical Gaps to Address</h4>
+                          <ul>
+                            {analysis.criticalGaps.map((gap, idx) => (
+                              <li key={idx}>{gap}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Overall Recommendations */}
+                        <div className="alert alert-info">
+                          <h4>Overall Recommendations</h4>
+                          <ol>
+                            {analysis.recommendations.map((rec, idx) => (
+                              <li key={idx}>{rec}</li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        {/* Detailed Criteria Analysis */}
+                        <div className="card">
+                          <h2 className="card-title">Detailed Criteria Analysis</h2>
+                          <div className="criteria-grid">
+                            {analysis.criteriaScores.map((criteria, idx) => (
+                              <div key={idx} className="criterion-card">
+                                <div className="criterion-header">
+                                  <div>
+                                    <h3 className="criterion-title">{criteria.category}</h3>
+                                    <p className="criterion-weight">Weight: {criteria.weight}% of total score</p>
+                                  </div>
+                                  <div className="criterion-score">
+                                    <div className={`score-number ${
+                                      criteria.score >= 85 ? 'text-green' :
+                                      criteria.score >= 70 ? 'text-yellow' : 'text-red'
+                                    }`}>
+                                      {criteria.score}
+                                    </div>
+                                    <div className="score-label">out of 100</div>
+                                  </div>
+                                </div>
+
+                                <div className="progress-bar">
+                                  <div
+                                    className={`progress-fill ${
+                                      criteria.score >= 85 ? 'bg-green' :
+                                      criteria.score >= 70 ? 'bg-yellow' : 'bg-red'
+                                    }`}
+                                    style={{ width: `${criteria.score}%` }}
+                                  />
+                                </div>
+
+                                <div className="feedback-grid">
+                                  <div className="feedback-box feedback-green">
+                                    <h4>Strengths</h4>
+                                    <ul>
+                                      {criteria.strengths.map((s, i) => (
+                                        <li key={i}>{s}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="feedback-box feedback-yellow">
+                                    <h4>Areas for Improvement</h4>
+                                    <ul>
+                                      {criteria.weaknesses.map((w, i) => (
+                                        <li key={i}>{w}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="feedback-box feedback-blue">
+                                    <h4>Recommendations</h4>
+                                    <ul>
+                                      {criteria.suggestions.map((s, i) => (
+                                        <li key={i}>{s}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="feedback-box feedback-red">
+                                    <h4>Missing Elements</h4>
+                                    <ul>
+                                      {criteria.missing.map((m, i) => (
+                                        <li key={i}>{m}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* History Tab */}
+                {activeTab === 'history' && (
+                  <div className="card">
+                    <h2 className="card-title">Analysis History</h2>
+                    {history.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon">◯</div>
+                        <h3 className="empty-title">No History Yet</h3>
+                        <p>Your analysis history will appear here after you analyze proposals</p>
+                        <button
+                          onClick={() => setActiveTab('upload')}
+                          className="btn btn-primary mt-2"
+                        >
+                          Analyze Your First Proposal
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{marginBottom: '1.5rem', color: '#64748b'}}>
+                          You have analyzed {history.length} proposal{history.length !== 1 ? 's' : ''}. 
+                          Click "View" to see detailed results.
+                        </p>
+                        {history.map((item, idx) => (
+                          <div key={idx} className="history-item">
+                            <div className="history-info">
+                              <h4>{item.proposalName}</h4>
+                              <p>{new Date(item.timestamp).toLocaleString()}</p>
+                            </div>
+                            <div className="history-actions">
+                              <div className="history-score">
+                                <div className={`history-score-number ${
+                                  item.overallScore >= 85 ? 'text-green' :
+                                  item.overallScore >= 70 ? 'text-yellow' : 'text-red'
+                                }`}>
+                                  {item.overallScore}
+                                </div>
+                                <div className="history-score-label">Score</div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setAnalysis(item);
+                                  setActiveTab('analysis');
+                                }}
+                                className="btn btn-primary"
+                              >
+                                View Details
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  color: '#64748b',
+                  fontSize: '0.875rem'
+                }}>
+                  <p><strong>Grant Scoring GPT</strong> - Powered by AI Technology</p>
+                  <p style={{marginTop: '0.5rem'}}>
+                    Part of Skills of Success Training Platform • 
+                    Helping agencies and vendors win more grants
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<GrantScoringGPT />, document.getElementById('root'));
+    </script>
+</body>
+</html>
